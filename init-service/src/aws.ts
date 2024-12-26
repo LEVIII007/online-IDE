@@ -1,20 +1,31 @@
 import { S3Client, ListObjectsV2Command, CopyObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
 import path from "path";
+import dotenv from "dotenv"
+
+dotenv.config();
+
+console.log("AWS_REGION:", process.env.AWS_REGION);
+console.log("AWS_ACCESS_KEY_ID:", process
+.env.AWS_ACCESS_KEY_ID);
+console.log("AWS_SECRET_ACCESS_KEY:", process.env.AWS_SECRET_ACCESS_KEY);
+console.log("AWS_BUCKET_NAME:", process.env.AWS_BUCKET_NAME);
+
 
 const s3 = new S3Client({
-    region: process.env.AWS_REGION ?? "us-east-1",
+    region: "us-east-1",
     credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? "",
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? "",
     },
-    endpoint: process.env.S3_ENDPOINT, // Optional, only if you're using a custom S3-compatible service
+    endpoint: process.env.AWS_ENDPOINT, // Optional, only if you're using a custom S3-compatible service
 });
 
 export async function copyS3Folder(sourcePrefix: string, destinationPrefix: string, continuationToken?: string): Promise<void> {
+    console.log(`Copying ${sourcePrefix} to ${destinationPrefix}`);
     try {
         const listParams = {
-            Bucket: process.env.S3_BUCKET ?? "",
+            Bucket: process.env.AWS_BUCKET_NAME ?? "",
             Prefix: sourcePrefix,
             ContinuationToken: continuationToken,
         };

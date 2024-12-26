@@ -12,7 +12,7 @@ function useSocket(replId: string) {
     const [socket, setSocket] = useState<Socket | null>(null);
 
     useEffect(() => {
-        const newSocket = io(`ws://${replId}.peetcode.com`);
+        const newSocket = io(`ws://${replId}.sockets.shashankkk.site`);
         setSocket(newSocket);
 
         return () => {
@@ -92,6 +92,7 @@ export const CodingPagePostPodCreation = () => {
     }, [socket]);
 
     const onSelect = (file: File) => {
+        if(!socket) { return; }
         if (file.type === Type.DIRECTORY) {
             socket?.emit("fetchDir", file.path, (data: RemoteFile[]) => {
                 setFileStructure(prev => {
