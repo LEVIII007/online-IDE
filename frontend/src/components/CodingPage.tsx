@@ -9,13 +9,23 @@ import { TerminalComponent as Terminal } from './Terminal';
 import axios from 'axios';
 
 function useSocket(replId: string) {
-    const [socket, setSocket] = useState<Socket | null>(null);
+    const [socket, setSocket] = useState<Socket | undefined>(undefined);
 
     useEffect(() => {
+        console.log(`[DEBUG] Initializing socket connection for replId: ${replId}`);
         const newSocket = io(`ws://${replId}.sockets.shashankkk.site`);
         setSocket(newSocket);
 
+        newSocket.on('connect', () => {
+            console.log(`[DEBUG] Socket connected with ID: ${newSocket.id}`);
+        });
+
+        newSocket.on('disconnect', () => {
+            console.log(`[DEBUG] Socket disconnected for replId: ${replId}`);
+        });
+
         return () => {
+            console.log(`[DEBUG] Disconnecting socket for replId: ${replId}`);
             newSocket.disconnect();
         };
     }, [replId]);
@@ -52,7 +62,6 @@ const RightPanel = styled.div`
   width: 40%;
 `;
 
-
 export const CodingPage = () => {
     const [podCreated, setPodCreated] = useState(false);
     const [searchParams] = useSearchParams();
@@ -60,17 +69,26 @@ export const CodingPage = () => {
     
     useEffect(() => {
         if (replId) {
-            axios.post(`http://localhost:3002/start`, { replId })                  // calls the orchestrator to start the pod
-                .then(() => setPodCreated(true))
-                .catch((err) => console.error(err));
+            console.log(`[DEBUG] Sending request to start pod for replId: ${replId}`);
+            axios.post(`http://localhost:3002/start`, { replId }) // Calls the orchestrator to start the pod
+                .then(() => {
+                    console.log(`[DEBUG] Pod created successfully for replId: ${replId}`);
+                    setPodCreated(true);
+                })
+                .catch((err) => {
+                    console.error(`[ERROR] Failed to create pod for replId: ${replId}`, err);
+                });
+        } else {
+            console.warn("[WARN] No replId found in search parameters.");
         }
     }, []);
 
     if (!podCreated) {
-        return <>Booting...</>
+        console.log("[DEBUG] Pod is not created yet. Showing booting message.");
+        return <>Booting...</>;
     }
-    return <CodingPagePostPodCreation />
 
+    return <CodingPagePostPodCreation />;
 }
 
 export const CodingPagePostPodCreation = () => {
@@ -84,50 +102,76 @@ export const CodingPagePostPodCreation = () => {
 
     useEffect(() => {
         if (socket) {
-            socket.on('loaded', ({ rootContent }: { rootContent: RemoteFile[]}) => {
+            console.log(`[DEBUG] Setting up socket event listeners for replId: ${replId}`);
+            socket.on('loaded', ({ rootContent }: { rootContent: RemoteFile[] }) => {
+                console.log("[DEBUG] Received 'loaded' event with root content:", rootContent);
                 setLoaded(true);
                 setFileStructure(rootContent);
             });
+
+            return () => {
+                console.log(`[DEBUG] Cleaning up socket listeners for replId: ${replId}`);
+                socket.off('loaded');
+            };
         }
     }, [socket]);
 
     const onSelect = (file: File) => {
-        if(!socket) { return; }
+        console.log(`[DEBUG] File selected: ${file.path}, Type: ${file.type}`);
+        if (!socket) {
+            console.warn("[WARN] Socket is not initialized.");
+            return;
+        }
         if (file.type === Type.DIRECTORY) {
-            socket?.emit("fetchDir", file.path, (data: RemoteFile[]) => {
+            console.log(`[DEBUG] Fetching directory content for path: ${file.path}`);
+            socket.emit("fetchDir", file.path, (data: RemoteFile[]) => {
+                console.log("[DEBUG] Directory content fetched:", data);
                 setFileStructure(prev => {
                     const allFiles = [...prev, ...data];
-                    return allFiles.filter((file, index, self) => 
+                    return allFiles.filter((file, index, self) =>
                         index === self.findIndex(f => f.path === file.path)
                     );
                 });
             });
         } else {
-            socket?.emit("fetchContent", { path: file.path }, (data: string) => {
+            console.log(`[DEBUG] Fetching file content for path: ${file.path}`);
+            socket.emit("fetchContent", { path: file.path }, (data: string) => {
+                console.log(`[DEBUG] Content fetched for file: ${file.path}`);
                 file.content = data;
                 setSelectedFile(file);
             });
         }
     };
-    
+
     if (!loaded) {
+        console.log("[DEBUG] Workspace is not loaded yet. Showing loading message.");
         return "Loading...";
     }
 
     return (
         <Container>
-             <ButtonContainer>
-                <button onClick={() => setShowOutput(!showOutput)}>See output</button>
+            <ButtonContainer>
+                <button onClick={() => setShowOutput(!showOutput)}>
+                    {showOutput ? "Hide Output" : "See Output"}
+                </button>
             </ButtonContainer>
             <Workspace>
                 <LeftPanel>
-                    <Editor socket={socket} selectedFile={selectedFile} onSelect={onSelect} files={fileStructure} />
+                    {socket && (
+                        <Editor
+                            socket={socket}
+                            selectedFile={selectedFile}
+                            onSelect={onSelect}
+                            files={fileStructure}
+                        />
+                    )}
                 </LeftPanel>
                 <RightPanel>
                     {showOutput && <Output />}
-                    <Terminal socket={socket} />
+                    {socket && <Terminal socket={socket} />}
                 </RightPanel>
             </Workspace>
         </Container>
     );
+    
 }
