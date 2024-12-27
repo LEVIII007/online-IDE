@@ -1,24 +1,37 @@
-# Use the official Node.js 14 as a parent image
-FROM node:20
+# Use a lightweight Node.js image as the base
+FROM node:20-alpine AS builder
 
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /code
 
-# Copy package.json and package-lock.json (if available) to the working directory
+# Copy only package.json and package-lock.json first (this ensures npm install is cached unless dependencies change)
 COPY package*.json ./
 
-# Install any dependencies
-RUN npm install
+# Install only production dependencies
+RUN npm ci --only=production
 
-# Copy the rest of your application's code to the working directory
+# Copy the rest of the application code
 COPY . .
 
-# Build your app
+# Install development dependencies and build the application
+RUN npm ci
 RUN npm run build
 
-# Your app binds to port 3000 so you'll use the EXPOSE instruction to have it mapped by the docker daemon
+# Production stage
+FROM node:20-alpine
+
+# Set the working directory
+WORKDIR /code
+
+# Copy only the necessary files from the builder stage
+COPY --from=builder /code/dist ./dist
+COPY --from=builder /code/package*.json ./
+
+# Install production dependencies
+RUN npm ci --only=production
+
+# Expose the application's port
 EXPOSE 3000
 
-# Define the command to run your app using CMD which defines your runtime
+# Set the default command to run the application
 CMD [ "node", "dist/index.js" ]
-
