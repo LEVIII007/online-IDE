@@ -1,37 +1,41 @@
-# Use a lightweight Node.js image as the base
-FROM node:20-alpine AS builder
+# Stage 1: Build the application
+FROM node:20 as builder
 
-# Set the working directory
-WORKDIR /code
+# Set working directory
+WORKDIR /runner
 
-# Copy only package.json and package-lock.json first (this ensures npm install is cached unless dependencies change)
-COPY package*.json ./
+# Copy package.json and package-lock.json
+COPY package.json package-lock.json ./
 
-# Install only production dependencies
-RUN npm ci --only=production
+# Install dependencies
+RUN npm install
 
-# Copy the rest of the application code
-COPY . .
+# Copy TypeScript source code
+COPY tsconfig.json ./
+COPY src ./src
 
-# Install development dependencies and build the application
-RUN npm ci
+# Build the TypeScript code
 RUN npm run build
 
-# Production stage
+# Remove development dependencies to reduce image size
+RUN npm prune --production
+
+# Stage 2: Create the production image
 FROM node:20-alpine
 
-# Set the working directory
-WORKDIR /code
+# Set working directory
+WORKDIR /runner
 
-# Copy only the necessary files from the builder stage
-COPY --from=builder /code/dist ./dist
-COPY --from=builder /code/package*.json ./
+# Copy the built app and dependencies from the builder stage
+COPY --from=builder /runner/dist ./dist
+COPY --from=builder /runner/node_modules ./node_modules
+COPY --from=builder /runner/package.json ./
 
-# Install production dependencies
-RUN npm ci --only=production
-
-# Expose the application's port
+# Expose the application port
 EXPOSE 3000
 
-# Set the default command to run the application
-CMD [ "node", "dist/index.js" ]
+# Set the environment to production
+ENV NODE_ENV=production
+
+# Start the application
+CMD ["node", "dist/index.js"]

@@ -14,7 +14,7 @@ const S3client = new S3Client({
 // Function to fetch a folder from S3 and save locally
 export const fetchS3Folder = async (key: string, localPath: string): Promise<void> => {
     const params = {
-        Bucket: process.env.S3_BUCKET ?? "",
+        Bucket: process.env.AWS_BUCKET_NAME ?? "",
         Prefix: key,
     };
 
@@ -47,7 +47,7 @@ export async function copyS3Folder(
 ): Promise<void> {
     try {
         const listParams = {
-            Bucket: process.env.S3_BUCKET ?? "",
+            Bucket: process.env.AWS_BUCKET_NAME ?? "",
             Prefix: sourcePrefix,
             ContinuationToken: continuationToken,
         };
@@ -59,8 +59,8 @@ export async function copyS3Folder(
             if (!object.Key) continue;
             const destinationKey = object.Key.replace(sourcePrefix, destinationPrefix);
             const copyParams = {
-                Bucket: process.env.S3_BUCKET ?? "",
-                CopySource: `${process.env.S3_BUCKET}/${object.Key}`,
+                Bucket: process.env.AWS_BUCKET_NAME ?? "",
+                CopySource: `${process.env.AWS_BUCKET_NAME}/${object.Key}`,
                 Key: destinationKey,
             };
 
@@ -80,7 +80,7 @@ export async function copyS3Folder(
 // Function to save a file to S3
 export const saveToS3 = async (key: string, filePath: string, content: string): Promise<void> => {
     const params = {
-        Bucket: process.env.S3_BUCKET ?? "",
+        Bucket: process.env.AWS_BUCKET_NAME ?? "",
         Key: `${key}${filePath}`,
         Body: content,
     };
