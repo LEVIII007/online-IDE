@@ -2,7 +2,6 @@
 node_modules/
 npm-debug.log
 yarn-error.log
-.env
 
 # Logs
 logs/
@@ -31,7 +30,6 @@ jspm_packages/
 .yarn-integrity
 
 # dotenv environment variables file
-.env
 
 # next.js build output
 .next
@@ -60,3 +58,4 @@ public/
 
 # Optional stylelint cache
 .stylelintcache
+config.bat
