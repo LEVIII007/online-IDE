@@ -38,10 +38,10 @@ const readAndParseKubeYaml = (filePath: string, replId: string): Array<any> => {
 };
 
 app.post("/start", async (req, res) => {
-    const { userId, replId } = req.body; // Assume a unique identifier for each user
+    const { replId } = req.body; // Assume a unique identifier for each user
     const namespace = "default"; // Assuming a default namespace, adjust as needed
 
-    console.log(`[DEBUG] Received request to start resources for userId: ${userId}, replId: ${replId}`);
+    // console.log(`[DEBUG] Received request to start resources for userId: ${userId}, replId: ${replId}`);
 
     try {
         // Read and parse Kubernetes manifests
