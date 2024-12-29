@@ -13,7 +13,7 @@ function useSocket(replId: string) {
 
     useEffect(() => {
         console.log(`[DEBUG] Initializing socket connection for replId: ${replId}`);
-        const newSocket = io(`ws://${replId}.sockets.shashankkk.site`);
+        const newSocket = io(`ws://${replId}.socket.shashankkk.site`);
         setSocket(newSocket);
 
         newSocket.on('connect', () => {

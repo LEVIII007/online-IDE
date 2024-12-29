@@ -10,9 +10,12 @@ const terminalManager = new TerminalManager();
 export function initWs(httpServer: HttpServer) {
     const io = new Server(httpServer, {
         cors: {
-            origin: "*", // Change this for more restrictive CORS policy later
-            methods: ["GET", "POST"],
+            origin: "http://localhost:5173", // Allow your frontend to connect
+        methods: ["GET", "POST"],
+        allowedHeaders: ["Content-Type"],
+        credentials: true, // If you're sending credentials (cookies, headers, etc.)
         },
+        transports: ["polling", "websocket"],
     });
 
     io.on("connection", async (socket) => {
