@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Socket } from "socket.io-client";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
+import "@xterm/xterm/css/xterm.css";
 
 const OPTIONS_TERM = {
     cursorBlink: true,
@@ -13,6 +14,8 @@ const OPTIONS_TERM = {
     },
 };
 
+const term = new Terminal(OPTIONS_TERM);
+
 export const TerminalComponent = ({ socket }: { socket: Socket }) => {
     const terminalRef = useRef<HTMLDivElement | null>(null);
 
@@ -20,10 +23,11 @@ export const TerminalComponent = ({ socket }: { socket: Socket }) => {
         if (!terminalRef.current || !socket) return;
 
         // Initialize terminal
-        const term = new Terminal(OPTIONS_TERM);
         const fitAddon = new FitAddon();
         term.loadAddon(fitAddon);
         term.open(terminalRef.current);
+
+        // Ensure terminal resizes properly initially
         fitAddon.fit();
 
         // Request terminal session from server
@@ -33,6 +37,7 @@ export const TerminalComponent = ({ socket }: { socket: Socket }) => {
         socket.on("terminal", (payload: { data: ArrayBuffer | string }) => {
             if (payload.data instanceof ArrayBuffer) {
                 const strData = new TextDecoder().decode(payload.data);
+                console.log("[DEBUG] Terminal data:", strData);
                 term.write(strData);
             } else if (typeof payload.data === "string") {
                 term.write(payload.data);
@@ -41,16 +46,22 @@ export const TerminalComponent = ({ socket }: { socket: Socket }) => {
 
         // Handle terminal input and send it to the server
         term.onData((data) => {
-            console.log("[DEBUG] Terminal input:", data);
+            console.log("[DEBUG] Terminal input+++:", data);
             socket.emit("terminalData", { data });
+        });
+
+        // Listen for resize events and adjust terminal size
+        window.addEventListener("resize", () => {
+            fitAddon.fit();
         });
 
         // Cleanup on component unmount
         return () => {
             term.dispose();
             socket.off("terminal");
+            window.removeEventListener("resize", () => fitAddon.fit());
         };
     }, [socket]);
 
-    return <div style={{ width: "100%", height: "100%" }} ref={terminalRef}></div>;
+    return <div style={{ width: "100%", height: "100vh" }} ref={terminalRef}></div>;
 };
