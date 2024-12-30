@@ -2,7 +2,7 @@
 import { fork, IPty } from 'node-pty';
 import path from "path";;
 
-const SHELL = "bash";
+const SHELL = "cmd.exe";
 
 export class TerminalManager {
     private sessions: { [id: string]: { terminal: IPty; replId: string } } = {};
