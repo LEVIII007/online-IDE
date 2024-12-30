@@ -10,7 +10,7 @@ const terminalManager = new TerminalManager();
 export function initWs(httpServer: HttpServer) {
     const io = new Server(httpServer, {
         cors: {
-            origin: "http://localhost:5173", // Allow your frontend to connect
+            origin: ["http://localhost:5173","http://localhost:3000"], // Allow your frontend to connect
         methods: ["GET", "POST"],
         allowedHeaders: ["Content-Type"],
         credentials: true, // If you're sending credentials (cookies, headers, etc.)
@@ -102,6 +102,7 @@ function initHandlers(socket: Socket, replId: string) {
 
     socket.on("requestTerminal", async () => {
         try {
+            console.log(`Creating terminal for socket ${socket.id}`);
             terminalManager.createPty(socket.id, replId, (data, id) => {
                 socket.emit('terminal', {
                     data: Buffer.from(data, "utf-8")
@@ -114,13 +115,12 @@ function initHandlers(socket: Socket, replId: string) {
         }
     });
 
-    socket.on("terminalData", async ({ data, terminalId }: { data: string, terminalId: number }) => {
+    socket.on("terminalData", async ({ data, terminalId }: { data: any, terminalId: any }) => {
         try {
             terminalManager.write(socket.id, data);
             console.log(`Written terminal data for terminalId ${terminalId}`);
         } catch (error) {
-            console.error(`Error writing terminal data for terminalId ${terminalId}:`, error);
-            socket.emit("error", { message: "Failed to write terminal data" });
+            console.error(`Error writing terminal data for terminalId ${terminalId}:`, error);    
         }
     });
 }

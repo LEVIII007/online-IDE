@@ -1,67 +1,56 @@
 import { useEffect, useRef } from "react";
 import { Socket } from "socket.io-client";
-import { Terminal } from "xterm";
-import { FitAddon } from "xterm-addon-fit";
-const fitAddon = new FitAddon();
-
-function ab2str(buf: ArrayBuffer): string {
-    // Convert ArrayBuffer to Uint8Array, then spread it into String.fromCharCode
-    return String.fromCharCode(...new Uint8Array(buf));
-}
+import { Terminal } from "@xterm/xterm";
+import { FitAddon } from "@xterm/addon-fit";
 
 const OPTIONS_TERM = {
-    useStyle: true,
-    screenKeys: true,
     cursorBlink: true,
-    cols: 200,
+    cols: 100,
     theme: {
-        background: "black",
+        background: "#1d1f21",
+        foreground: "#c5c8c6",
+        cursor: "#c5c8c6",
     },
 };
 
 export const TerminalComponent = ({ socket }: { socket: Socket }) => {
-    const terminalRef = useRef<HTMLDivElement | null>(null); // Define the correct type
+    const terminalRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
-        if (!terminalRef.current || !socket) {
-            return;
-        }
-
-        // Request terminal session
-        socket.emit("requestTerminal");
-        socket.on("terminal", terminalHandler);
+        if (!terminalRef.current || !socket) return;
 
         // Initialize terminal
         const term = new Terminal(OPTIONS_TERM);
+        const fitAddon = new FitAddon();
         term.loadAddon(fitAddon);
         term.open(terminalRef.current);
         fitAddon.fit();
 
-        function terminalHandler({ data }: { data: ArrayBuffer | string }) {
-            if (data instanceof ArrayBuffer) {
-                console.error("[DEBUG] Received ArrayBuffer data:", data);
-                const strData = ab2str(data); // Convert ArrayBuffer to string
-                console.log("[DEBUG] Converted data:", strData);
-                term.write(strData);
-            } else if (typeof data === "string") {
-                console.log("[DEBUG] Received string data:", data);
-                term.write(data);
-            }
-        }
+        // Request terminal session from server
+        socket.emit("requestTerminal");
 
-        // Send terminal input back to server
+        // Listen for terminal data from the server
+        socket.on("terminal", (payload: { data: ArrayBuffer | string }) => {
+            if (payload.data instanceof ArrayBuffer) {
+                const strData = new TextDecoder().decode(payload.data);
+                term.write(strData);
+            } else if (typeof payload.data === "string") {
+                term.write(payload.data);
+            }
+        });
+
+        // Handle terminal input and send it to the server
         term.onData((data) => {
+            console.log("[DEBUG] Terminal input:", data);
             socket.emit("terminalData", { data });
         });
 
-        // Emit initial newline
-        socket.emit("terminalData", { data: "\n" });
-
-        // Cleanup
+        // Cleanup on component unmount
         return () => {
+            term.dispose();
             socket.off("terminal");
         };
-    }, [terminalRef, socket]);
+    }, [socket]);
 
-    return <div style={{ width: "40vw", height: "400px", textAlign: "left" }} ref={terminalRef}></div>;
+    return <div style={{ width: "100%", height: "100%" }} ref={terminalRef}></div>;
 };

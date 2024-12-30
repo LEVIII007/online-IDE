@@ -43,16 +43,15 @@ app.post("/start", async (req, res) => {
 
     try {
         // Check if the Deployment already exists
-        const deploymentName = `${replId}-deployment`; // Assuming a naming convention
-        console.log(`[DEBUG] Checking if Deployment ${deploymentName} exists in namespace ${namespace}`);
+        console.log(`[DEBUG] Checking if Deployment ${replId} exists in namespace ${namespace}`);
 
         try {
             await appsV1Api.readNamespacedDeployment(replId, namespace);
-            console.log(`[DEBUG] Deployment ${deploymentName} already exists in namespace ${namespace}`);
+            console.log(`[DEBUG] Deployment ${replId} already exists in namespace ${namespace}`);
             return res.status(200).send({ message: `Resources for replId ${replId} already exist.` });
         } catch (err) {
             if (err.response && err.response.statusCode === 404) {
-                console.log(`[DEBUG] Deployment ${deploymentName} does not exist. Proceeding to create resources.`);
+                console.log(`[DEBUG] Deployment ${replId} does not exist. Proceeding to create resources.`);
             } else {
                 console.error("[ERROR] Error checking Deployment existence", err);
                 return res.status(500).send({ message: "Failed to check existing resources." });

@@ -9,16 +9,6 @@ const app = express();
 
 const allowedOrigins = ["http://localhost:5173"]; // Add specific origins as needed
 
-app.use((req, res, next) => {
-  console.log(`Incoming request: ${req.method} ${req.url}`);
-  next();
-});
-
-// Preflight request handler
-app.options('*', (req, res) => {
-  console.log('Preflight request received:', req.headers);
-  res.sendStatus(200);
-});
 
 app.use(cors({
   origin: (origin, callback) => {

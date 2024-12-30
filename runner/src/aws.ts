@@ -79,6 +79,7 @@ export async function copyS3Folder(
 
 // Function to save a file to S3
 export const saveToS3 = async (key: string, filePath: string, content: string): Promise<void> => {
+    console.log(`[DEBUG] Saving file to S3: ${key}${filePath}`);
     const params = {
         Bucket: process.env.AWS_BUCKET_NAME ?? "",
         Key: `${key}${filePath}`,
